@@ -13,8 +13,13 @@
             padding: 20px;
         }
         .chart-container {
-            margin: 20px 0;
-            height: 300px;
+            margin: 20px 0 40px 0;
+            height: 400px;
+            min-height: 400px;
+        }
+        
+        .sentiment-details {
+            margin-top: 30px;
         }
         .stock-selector {
             display: flex;
@@ -158,7 +163,11 @@
                                     return;
                                 }
                                 console.log('Chart.js available:', typeof Chart !== 'undefined');
-                                renderChart(data);
+                        // Sort data by date (oldest to newest)
+                        const sortedData = [...data].sort((a, b) => 
+                            new Date(a.date) - new Date(b.date)
+                        );
+                        renderChart(sortedData);
                             } catch (e) {
                                 console.error('Chart rendering error:', e);
                                 resultsDiv.innerHTML += '<p class="error">Chart failed to load</p>';
@@ -174,10 +183,11 @@
             function generateDetailsHTML(data) {
                 const averageScore = calculateAverage(data).toFixed(2);
                 const daysHTML = data.map(day => 
-                    '<div class="day-sentiment ' + getSentimentClass(day.score) + '">' +
+                    '<div class="day-sentiment ' + getSentimentClass(day.sentiment_score) + '">' +
                     '<h3>' + day.date + '</h3>' +
-                    '<p>Score: ' + day.score.toFixed(2) + '</p>' +
-                    '<p>Articles Analyzed: ' + day.article_count + '</p>' +
+                    '<p>Sentiment: ' + day.sentiment_score.toFixed(2) + '</p>' +
+                    '<p>RSI: ' + day.rsi_score.toFixed(2) + '</p>' +
+                    '<p>Articles: ' + day.article_count + '</p>' +
                     '</div>'
                 ).join('');
                 
@@ -195,7 +205,7 @@
             }
 
             function calculateAverage(data) {
-                return data.reduce((sum, day) => sum + day.score, 0) / data.length;
+                return data.reduce((sum, day) => sum + day.sentiment_score, 0) / data.length;
             }
 
             function getSentimentClass(score) {
@@ -216,7 +226,8 @@
                 }
                 
                 const dates = data.map(day => day.date);
-                const scores = data.map(day => day.score);
+                const scores = data.map(day => day.sentiment_score);
+                const rsiScores = data.map(day => day.rsi_score);
                 
                 sentimentChart = new Chart(ctx, {
                     type: 'line',
@@ -227,8 +238,16 @@
                             data: scores,
                             borderColor: 'rgb(75, 192, 192)',
                             tension: 0.1,
-                            fill: true,
-                            backgroundColor: 'rgba(75, 192, 192, 0.2)'
+                            fill: false,
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: 'RSI',
+                            data: rsiScores,
+                            borderColor: 'rgb(255, 99, 132)',
+                            tension: 0.1,
+                            fill: false,
+                            yAxisID: 'y1'
                         }]
                     },
                     options: {
@@ -239,6 +258,20 @@
                                 title: {
                                     display: true,
                                     text: 'Sentiment Score'
+                                },
+                                position: 'left'
+                            },
+                            y1: {
+                                beginAtZero: false,
+                                title: {
+                                    display: true,
+                                    text: 'RSI'
+                                },
+                                position: 'right',
+                                min: 0,
+                                max: 100,
+                                grid: {
+                                    drawOnChartArea: false
                                 }
                             },
                             x: {
